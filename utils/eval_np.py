@@ -17,7 +17,7 @@ class PanopticEval:
 
   def __init__(self, n_classes, device=None, ignore=None, offset=100000, min_points=30):
     self.n_classes = n_classes
-    assert (device == None)
+    assert device is None
     self.ignore = np.array(ignore, dtype=np.int64)
     self.include = np.array([n for n in range(self.n_classes) if n not in self.ignore], dtype=np.int64)
 
@@ -84,9 +84,7 @@ class PanopticEval:
     total_tp = tp.sum()
     total = tp[self.include].sum() + fp[self.include].sum()
     total = np.maximum(total, self.eps)
-    acc_mean = total_tp.astype(np.double) / total.astype(np.double)
-
-    return acc_mean  # returns "acc mean"
+    return total_tp.astype(np.double) / total.astype(np.double)
 
   ################################# IoU STUFF ##################################
   ##############################################################################
@@ -197,7 +195,7 @@ class Panoptic4DEval:
 
   def __init__(self, n_classes, device=None, ignore=None, offset=2 ** 32, min_points=30):
     self.n_classes = n_classes
-    assert (device == None)
+    assert device is None
     self.ignore = np.array(ignore, dtype=np.int64)
     self.include = np.array([n for n in range(self.n_classes) if n not in self.ignore], dtype=np.int64)
     print("[PANOPTIC4D EVAL] IGNORE: ", self.ignore)
@@ -272,9 +270,7 @@ class Panoptic4DEval:
     total_tp = tp.sum()
     total = tp[self.include].sum() + fp[self.include].sum()
     total = np.maximum(total, self.eps)
-    acc_mean = total_tp.astype(np.double) / total.astype(np.double)
-
-    return acc_mean  # returns "acc mean"
+    return total_tp.astype(np.double) / total.astype(np.double)
 
   ################################# IoU STUFF ##################################
   ##############################################################################

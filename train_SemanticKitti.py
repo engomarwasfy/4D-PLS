@@ -31,12 +31,6 @@ from utils.config import Config
 from utils.trainer import ModelTrainer
 
 
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#           Config Class
-#       \******************/
-#
-
 class SemanticKittiConfig(Config):
     """
     Override the parameters you want to modify for this dataset
@@ -211,15 +205,7 @@ class SemanticKittiConfig(Config):
 
 if __name__ == '__main__':
 
-    ############################
-    # Initialize the environment
-    ############################
-
-    # Set which gpu is going to be used
-    GPU_ID = '0'
-    if torch.cuda.device_count() > 1:
-        GPU_ID = '0, 1'
-
+    GPU_ID = '0, 1' if torch.cuda.device_count() > 1 else '0'
     # Set GPU visible device
     os.environ['CUDA_VISIBLE_DEVICES'] = GPU_ID
 
@@ -333,11 +319,7 @@ if __name__ == '__main__':
         print("Model size %i" % sum(param.numel() for param in net.parameters() if param.requires_grad))
         print('\n*************************************\n')
 
-    # Define a trainer class
-    if previous_training_path:
-        trainer = ModelTrainer(net, config, chkp_path=chosen_chkp)
-    else:
-        trainer = ModelTrainer(net, config, chkp_path=chosen_chkp)
+    trainer = ModelTrainer(net, config, chkp_path=chosen_chkp)
     print('Done in {:.1f}s\n'.format(time.time() - t1))
 
     print('\nStart training')

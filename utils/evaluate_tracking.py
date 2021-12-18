@@ -177,7 +177,7 @@ if __name__ == '__main__':
         count = count + 1
         if 100 * count / complete > percent:
             print("{}% ".format(percent), end="", flush=True)
-            percent = percent + 10
+            percent += 10
         # print("evaluating label ", label_file, "with", pred_file)
         # open label
 
