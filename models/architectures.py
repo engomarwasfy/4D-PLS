@@ -105,11 +105,11 @@ def IoU(bbox0, bbox1):
     :return: IoU
     """
 
-    dim = int(len(bbox0)/2)
+    dim = len(bbox0) // 2
     overlap = [max(0, min(bbox0[i+dim], bbox1[i+dim]) - max(bbox0[i], bbox1[i])) for i in range(dim)]
     intersection = 1
     for i in range(dim):
-        intersection = intersection * overlap[i]
+        intersection *= overlap[i]
     area0 = 1
     area1 = 1
     for i in range(dim):
@@ -157,9 +157,7 @@ def do_range_projection(points):
     return np.vstack((proj_x, proj_y))
 
 def euclidean_dist(b1, b2):
-    ret_sum = 0
-    for i in range(3):
-        ret_sum += (b1[i] - b2[i])**2
+    ret_sum = sum((b1[i] - b2[i])**2 for i in range(3))
     return  torch.sqrt(ret_sum)
 
 
@@ -187,10 +185,9 @@ class KPCNN(nn.Module):
 
         # Loop over consecutive blocks
         block_in_layer = 0
-        for block_i, block in enumerate(config.architecture):
-
+        for block in config.architecture:
             # Check equivariance
-            if ('equivariant' in block) and (not out_dim % 3 == 0):
+            if 'equivariant' in block and out_dim % 3 != 0:
                 raise ValueError('Equivariant block but features dimension is not a factor of 3')
 
             # Detect upsampling block to stop
@@ -209,11 +206,7 @@ class KPCNN(nn.Module):
             block_in_layer += 1
 
             # Update dimension of input from output
-            if 'simple' in block:
-                in_dim = out_dim // 2
-            else:
-                in_dim = out_dim
-
+            in_dim = out_dim // 2 if 'simple' in block else out_dim
             # Detect change to a subsampled layer
             if 'pool' in block or 'strided' in block:
                 # Update radius and feature dimension for next layer
@@ -325,7 +318,7 @@ class KPFCNN(nn.Module):
         for block_i, block in enumerate(config.architecture):
 
             # Check equivariance
-            if ('equivariant' in block) and (not out_dim % 3 == 0):
+            if 'equivariant' in block and out_dim % 3 != 0:
                 raise ValueError('Equivariant block but features dimension is not a factor of 3')
 
             # Detect change to next layer for skip connection
@@ -346,11 +339,7 @@ class KPFCNN(nn.Module):
                                                      config))
 
             # Update dimension of input from output
-            if 'simple' in block:
-                in_dim = out_dim // 2
-            else:
-                in_dim = out_dim
-
+            in_dim = out_dim // 2 if 'simple' in block else out_dim
             # Detect change to a subsampled layer
             if 'pool' in block or 'strided' in block:
                 # Update radius and feature dimension for next layer
@@ -699,12 +688,12 @@ class KPFCNN(nn.Module):
 
         idxes_1, idxes_2 = linear_sum_assignment(association_costs.cpu().detach())
 
-        associations = []
+        associations = [
+            (prev_ids[i1], current_ids[i2])
+            for i1, i2 in zip(idxes_1, idxes_2)
+            if association_costs[i1][i2] < 1e8
+        ]
 
-        for i1, i2 in zip(idxes_1, idxes_2):
-            #max_cost = torch.sum((previous_instances[prev_ids[i1]]['var'][0,-3:]/2)**2)
-            if association_costs[i1][i2] < 1e8:
-                associations.append((prev_ids[i1], current_ids[i2]))
 
         return association_costs, associations
 

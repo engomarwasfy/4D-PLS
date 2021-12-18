@@ -68,8 +68,8 @@ if __name__ == "__main__":
     print(checkmark)
 
     with zipfile.ZipFile(FLAGS.zipfile) as zipfile:
-      if FLAGS.task == "segmentation" or FLAGS.task == "panoptic":
-        
+      if FLAGS.task in ["segmentation", "panoptic"]:
+
 
         print("  2. Checking directory structure... ", end="", flush=True)
 
@@ -131,7 +131,7 @@ if __name__ == "__main__":
         print('  3. Checking file sizes', end='', flush=True)
 
         prediction_files = {str(info.filename): info for info in zipfile.infolist() if not info.filename.endswith("/")}
-        
+
         # description.txt is optional and one should not get an error.
         if "description.txt" in prediction_files: del prediction_files["description.txt"]
 
@@ -165,11 +165,10 @@ if __name__ == "__main__":
 
         print('  4. Checking for unneeded files', end='', flush=True)
         if len(necessary_files) != len(prediction_files.keys()):
-          filelist = sorted([f for f in prediction_files.keys() if f not in necessary_files])
-          ell = ""
-          if len(filelist) > 10: ell = ", ..."
+          filelist = sorted([f for f in prediction_files if f not in necessary_files])
+          ell = ", ..." if len(filelist) > 10 else ""
           raise ValidationException("Zip contains unneeded predictions, e.g., {}".format(",".join(filelist[:10]) + ell))
-        
+
         print(".... " + checkmark)
       else:
         raise NotImplementedError("Unknown task.")

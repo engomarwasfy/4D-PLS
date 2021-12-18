@@ -76,8 +76,18 @@ class ModelTrainer:
 
         var_params = [v for k, v in net.named_parameters() if 'head_var' in k]
         # Optimizer with specific learning rate for deformable KPConv
-        deform_params = [v for k, v in net.named_parameters() if 'offset' in k and not 'head_var' in k]
-        other_params = [v for k, v in net.named_parameters() if 'offset' not in k and not 'head_var' in k]
+        deform_params = [
+            v
+            for k, v in net.named_parameters()
+            if 'offset' in k and 'head_var' not in k
+        ]
+
+        other_params = [
+            v
+            for k, v in net.named_parameters()
+            if 'offset' not in k and 'head_var' not in k
+        ]
+
         deform_lr = config.learning_rate * config.deform_lr_factor
         var_lr =  1e-3
         self.optimizer = torch.optim.SGD([{'params': other_params},

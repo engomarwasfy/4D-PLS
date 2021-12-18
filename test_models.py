@@ -70,8 +70,8 @@ def model_choice(chosen_log):
                 chosen_log = log
                 break
 
-        if chosen_log in ['last_ModelNet40', 'last_ShapeNetPart', 'last_S3DIS']:
-            raise ValueError('No log of the dataset "' + test_dataset + '" found')
+    if chosen_log in ['last_ModelNet40', 'last_ShapeNetPart', 'last_S3DIS']:
+        raise ValueError('No log of the dataset "' + test_dataset + '" found')
 
     # Check if log exists
     if not os.path.exists(chosen_log):
@@ -108,15 +108,7 @@ if __name__ == '__main__':
     # Deal with 'last_XXXXXX' choices
     chosen_log = model_choice(chosen_log)
 
-    ############################
-    # Initialize the environment
-    ############################
-
-    # Set which gpu is going to be used
-    GPU_ID = '0'
-    if torch.cuda.device_count() > 1:
-        GPU_ID = '0, 1'
-
+    GPU_ID = '0, 1' if torch.cuda.device_count() > 1 else '0'
     ###############
     # Previous chkp
     ###############
@@ -148,8 +140,7 @@ if __name__ == '__main__':
     config.input_threads = 16
     config.n_frames = 4
     config.n_test_frames = 4 #it should be smaller than config.n_frames
-    if config.n_frames < config.n_test_frames:
-        config.n_frames = config.n_test_frames
+    config.n_frames = max(config.n_frames, config.n_test_frames)
     config.big_gpu = True
     config.dataset_task = '4d_panoptic'
     #config.sampling = 'density'
@@ -167,11 +158,7 @@ if __name__ == '__main__':
     print('Data Preparation')
     print('****************')
 
-    if on_val:
-        set = 'validation'
-    else:
-        set = 'test'
-
+    set = 'validation' if on_val else 'test'
     # Initiate dataset
     if config.dataset.startswith('ModelNet40'):
         test_dataset = ModelNet40Dataset(config, train=False)
@@ -206,7 +193,7 @@ if __name__ == '__main__':
     t1 = time.time()
     if config.dataset_task == 'classification':
         net = KPCNN(config)
-    elif config.dataset_task in ['cloud_segmentation', 'slam_segmentation']:
+    elif config.dataset_task in {'cloud_segmentation', 'slam_segmentation'}:
         net = KPFCNN(config, test_dataset.label_values, test_dataset.ignored_labels)
     else:
         raise ValueError('Unsupported dataset_task for testing: ' + config.dataset_task)
@@ -217,9 +204,9 @@ if __name__ == '__main__':
 
     print('\nStart test')
     print('**********\n')
-    
+
     config.dataset_task = '4d_panoptic'
-    
+
     # Training
     if config.dataset_task == 'classification':
         a = 1/0

@@ -154,13 +154,11 @@ if __name__ == '__main__':
 
   complete = len(label_names)
 
-  count = 0
   percent = 10
-  for label_file, pred_file in zip(label_names, pred_names):
-    count = count + 1
+  for count, (label_file, pred_file) in enumerate(zip(label_names, pred_names), start=1):
     if 100 * count / complete > percent:
       print("{}% ".format(percent), end="", flush=True)
-      percent = percent + 10
+      percent += 10
     # print("evaluating label ", label_file, "with", pred_file)
     # open label
 

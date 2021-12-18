@@ -36,7 +36,7 @@ for seq in sequences:
         sem_ins_labels = np.unique(ins_labels)
         center_labels = np.zeros((new_points.shape[0], 4))
 
-        for _, semins in enumerate(sem_ins_labels):
+        for semins in sem_ins_labels:
             valid_ind = np.argwhere(ins_labels == semins)[:, 0]
             if semins == 0 or valid_ind.shape[0] < 5:  # background classes and small groups
                 continue

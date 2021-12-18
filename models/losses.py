@@ -17,8 +17,7 @@ def weighted_mse_loss(output, target, weights):
     if out.ndim > 1:
         out = out.sum(dim=1)
     out = out * weights.expand_as(out)
-    loss = out.mean(0)
-    return loss
+    return out.mean(0)
 
 def pdf_normal(x, mean, var):
 
@@ -31,9 +30,7 @@ def pdf_normal(x, mean, var):
     a = torch.matmul(dif, inv_var)
     b = torch.matmul(a, dif.T)
     p = torch.diag(b) * -0.5
-    p_e = torch.exp(p)
-
-    return p_e
+    return torch.exp(p)
 
 def new_pdf_normal(x, mean, var):
     """
@@ -70,19 +67,18 @@ def instance_half_loss(embeddings, ins_labels):
     for instance in instances:
         if instance == 0:
             continue
-        else:
-            ins_idxs = torch.where(ins_labels == instance)
-            ins_embeddings = embeddings[ins_idxs]
-            n_points = ins_embeddings.shape[0]
-            perm = torch.randperm(n_points)
-            embedding_half1 = ins_embeddings[perm[0:int(n_points / 2)]]
-            embedding_half2 = ins_embeddings[perm[int(n_points / 2):]]
-            mean1 = torch.mean(embedding_half1, 0, True)
-            mean2 = torch.mean(embedding_half2, 0, True)
-            ins_half_loss = torch.nn.MSELoss()(mean1, mean2)
-            if torch.isnan(ins_half_loss):
-                continue
-            loss = loss + ins_half_loss
+        ins_idxs = torch.where(ins_labels == instance)
+        ins_embeddings = embeddings[ins_idxs]
+        n_points = ins_embeddings.shape[0]
+        perm = torch.randperm(n_points)
+        embedding_half1 = ins_embeddings[perm[:int(n_points / 2)]]
+        embedding_half2 = ins_embeddings[perm[int(n_points / 2):]]
+        mean1 = torch.mean(embedding_half1, 0, True)
+        mean2 = torch.mean(embedding_half2, 0, True)
+        ins_half_loss = torch.nn.MSELoss()(mean1, mean2)
+        if torch.isnan(ins_half_loss):
+            continue
+        loss = loss + ins_half_loss
     return  loss
 
 def iou_instance_loss(centers_p, embeddings, variances, ins_labels, points=None, times=None):
@@ -113,27 +109,22 @@ def iou_instance_loss(centers_p, embeddings, variances, ins_labels, points=None,
     for instance in instances:
         if instance == 0:
             continue
-        else:
-            ins_idxs = torch.where(ins_labels == instance)
-            ins_centers = centers_p[ins_idxs]
-            sorted, indices = torch.sort(ins_centers, 0, descending=True)
-            range = torch.sum(sorted > 0.9)
-            if range == 0:
-                random_center = 0
-            else:
-                random_center = torch.randint(0, range, (1,))
+        ins_idxs = torch.where(ins_labels == instance)
+        ins_centers = centers_p[ins_idxs]
+        sorted, indices = torch.sort(ins_centers, 0, descending=True)
+        range = torch.sum(sorted > 0.9)
+        random_center = 0 if range == 0 else torch.randint(0, range, (1,))
+        idx = ins_idxs[0][indices[random_center]]
+        mean = embeddings[idx]  # 1xD
+        var = variances[idx]
 
-            idx = ins_idxs[0][indices[random_center]]
-            mean = embeddings[idx]  # 1xD
-            var = variances[idx]
+        labels = (ins_labels == instance) * 1.0
 
-            labels = (ins_labels == instance) * 1.0
+        probs = new_pdf_normal(embeddings, mean, var)
 
-            probs = new_pdf_normal(embeddings, mean, var)
-
-            ratio = torch.sum(ins_labels == 0)/(torch.sum(ins_labels == instance)*1.0+ torch.sum(probs > 0.5))
-            weights = ((ins_labels == instance) | (probs >0.5)) * ratio + (ins_labels >= 0) * 1 #new loss
-            loss = loss + weighted_mse_loss(probs, labels, weights)
+        ratio = torch.sum(ins_labels == 0)/(torch.sum(ins_labels == instance)*1.0+ torch.sum(probs > 0.5))
+        weights = ((ins_labels == instance) | (probs >0.5)) * ratio + (ins_labels >= 0) * 1 #new loss
+        loss = loss + weighted_mse_loss(probs, labels, weights)
 
     return loss
 
@@ -219,7 +210,7 @@ def lovasz_grad(gt_sorted):
     union = gts + (1 - gt_sorted).float().cumsum(0)
     jaccard = 1. - intersection / union
     if p > 1:  # cover 1-pixel case
-        jaccard[1:p] = jaccard[1:p] - jaccard[0:-1]
+        jaccard[1:p] = jaccard[1:p] - jaccard[:-1]
     return jaccard
 
 
@@ -234,10 +225,7 @@ def iou_binary(preds, labels, EMPTY=1., ignore=None, per_image=True):
     for pred, label in zip(preds, labels):
         intersection = ((label == 1) & (pred == 1)).sum()
         union = ((label == 1) | ((pred == 1) & (label != ignore))).sum()
-        if not union:
-            iou = EMPTY
-        else:
-            iou = float(intersection) / float(union)
+        iou = EMPTY if not union else float(intersection) / float(union)
         ious.append(iou)
     iou = mean(ious)  # mean accross images if per_image
     return 100 * iou
@@ -276,12 +264,18 @@ def lovasz_hinge(logits, labels, per_image=True, ignore=None):
       per_image: compute the loss per image instead of per batch
       ignore: void class id
     """
-    if per_image:
-        loss = mean(lovasz_hinge_flat(*flatten_binary_scores(log.unsqueeze(0), lab.unsqueeze(0), ignore))
-                    for log, lab in zip(logits, labels))
-    else:
-        loss = lovasz_hinge_flat(*flatten_binary_scores(logits, labels, ignore))
-    return loss
+    return (
+        mean(
+            lovasz_hinge_flat(
+                *flatten_binary_scores(
+                    log.unsqueeze(0), lab.unsqueeze(0), ignore
+                )
+            )
+            for log, lab in zip(logits, labels)
+        )
+        if per_image
+        else lovasz_hinge_flat(*flatten_binary_scores(logits, labels, ignore))
+    )
 
 
 def lovasz_hinge_flat(logits, labels):
@@ -300,8 +294,7 @@ def lovasz_hinge_flat(logits, labels):
     perm = perm.data
     gt_sorted = labels[perm]
     grad = lovasz_grad(gt_sorted)
-    loss = torch.dot(F.relu(errors_sorted), Variable(grad))
-    return loss
+    return torch.dot(F.relu(errors_sorted), Variable(grad))
 
 
 def flatten_binary_scores(scores, labels, ignore=None):
@@ -337,8 +330,7 @@ def binary_xloss(logits, labels, ignore=None):
       ignore: void class id
     """
     logits, labels = flatten_binary_scores(logits, labels, ignore)
-    loss = StableBCELoss()(logits, Variable(labels.float()))
-    return loss
+    return StableBCELoss()(logits, Variable(labels.float()))
 
 
 # --------------------------- MULTICLASS LOSSES ---------------------------
@@ -354,12 +346,19 @@ def lovasz_softmax(probas, labels, classes='present', per_image=False, ignore=No
       per_image: compute the loss per image instead of per batch
       ignore: void class labels
     """
-    if per_image:
-        loss = mean(lovasz_softmax_flat(*flatten_probas(prob.unsqueeze(0), lab.unsqueeze(0), ignore), classes=classes)
-                    for prob, lab in zip(probas, labels))
-    else:
-        loss = lovasz_softmax_flat(*flatten_probas(probas, labels, ignore), classes=classes)
-    return loss
+    return (
+        mean(
+            lovasz_softmax_flat(
+                *flatten_probas(prob.unsqueeze(0), lab.unsqueeze(0), ignore),
+                classes=classes
+            )
+            for prob, lab in zip(probas, labels)
+        )
+        if per_image
+        else lovasz_softmax_flat(
+            *flatten_probas(probas, labels, ignore), classes=classes
+        )
+    )
 
 
 def lovasz_softmax_flat(probas, labels, classes='present'):

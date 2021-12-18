@@ -157,10 +157,10 @@ if __name__ == '__main__':
   count = 0
   percent = 10
   for label_file, pred_file in zip(label_names, pred_names):
-    count = count + 1
+    count += 1
     if 100 * count / complete > percent:
       print("{}% ".format(percent), end="", flush=True)
-      percent = percent + 10
+      percent += 10
     # print("evaluating label ", label_file, "with", pred_file)
     # open label
 
@@ -225,8 +225,7 @@ if __name__ == '__main__':
 
   # class
 
-  output_dict["all"] = {}
-  output_dict["all"]["PQ"] = class_PQ
+  output_dict["all"] = {'PQ': class_PQ}
   output_dict["all"]["SQ"] = class_SQ
   output_dict["all"]["RQ"] = class_RQ
   output_dict["all"]["IoU"] = class_IoU

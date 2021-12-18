@@ -427,10 +427,7 @@ class Munkres:
 
     def __make_matrix(self, n, val):
         """Create an *n*x*n* matrix, populating it with the specific value."""
-        matrix = []
-        for i in range(n):
-            matrix += [[val for j in range(n)]]
-        return matrix
+        return [[val for j in range(n)] for _ in range(n)]
 
     def __step1(self):
         """
@@ -481,12 +478,7 @@ class Munkres:
                     self.col_covered[j] = True
                     count += 1
 
-        if count >= n:
-            step = 7 # done
-        else:
-            step = 4
-
-        return step
+        return 7 if count >= n else 4
 
     def __step4(self):
         """
@@ -581,9 +573,12 @@ class Munkres:
             minval = sys.maxsize
         for i in range(self.n):
             for j in range(self.n):
-                if (not self.row_covered[i]) and (not self.col_covered[j]):
-                    if minval > self.C[i][j]:
-                        minval = self.C[i][j]
+                if (
+                    (not self.row_covered[i])
+                    and (not self.col_covered[j])
+                    and minval > self.C[i][j]
+                ):
+                    minval = self.C[i][j]
         return minval
 
     def __find_a_zero(self):
@@ -705,10 +700,7 @@ def make_cost_matrix(profit_matrix, inversion_function):
     :rtype: list of lists
     :return: The converted matrix
     """
-    cost_matrix = []
-    for row in profit_matrix:
-        cost_matrix.append([inversion_function(value) for value in row])
-    return cost_matrix
+    return [[inversion_function(value) for value in row] for row in profit_matrix]
 
 def print_matrix(matrix, msg=None):
     """
