@@ -71,7 +71,7 @@ traits==6.0.0
 traitsui==7.0.0
 umsgpack==0.1.0
 vispy==0.6.4
-vtk==8.1.2
+vtk==9.0.1
 wcwidth==0.1.9
 webencodings==0.5.1
 widgetsnbextension==3.5.1
